@@ -114,7 +114,7 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         if (uint256(currentTier) > uint256(newTier)) revert InvalidTier();
 
         members[tokenId].tier = newTier;
-        address user = ownerOf(tokenId);
+        address user = _ownerOf(tokenId);
 
         emit TierUpgraded(user, newTier);
 
@@ -182,3 +182,4 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
 
 
 }
+
