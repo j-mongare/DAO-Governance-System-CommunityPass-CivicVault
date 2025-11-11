@@ -69,7 +69,7 @@ contract CivicVault is ReentrancyGuard{
     //====================eRRORS============================
     error NotAdmin();
     error NotMember();
-    error NoStake();
+    error FuckOff();
     error AlreadyStaked();
     error NotOwnerOfToken();
     error ProposalDoesNotExist();
@@ -197,7 +197,7 @@ contract CivicVault is ReentrancyGuard{
      */
 
      function unstake(uint256 tokenId)external nonReentrant proposalEnded(proposalId) {
-        if (stakedTokenOf[msg.sender] != tokenId)revert NoStake();
+        if (stakedTokenOf[msg.sender] != tokenId)revert FuckOff();
 
         if(activeProposals > 0){
 
@@ -508,4 +508,5 @@ contract CivicVault is ReentrancyGuard{
     }
 
 }
+
 
