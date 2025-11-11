@@ -16,6 +16,7 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     using Strings for uint256; // OpenZepplin utility library that lets you convert numbers to strings easily
 
     //=============State Variables===========
+
     uint256 public nextTokenId; // counter for minting new tokens
     address public admin; // DAO admin
     string private baseURI; // base metadata URI
@@ -23,7 +24,7 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     mapping (address => bool)public hasMinted; // track if user has already minted
     mapping(uint256 => Member) public members; // store member info
 
-    //=================Struct and enum===============
+    //=================Struct and Enum===============
 
     enum Tier{Bronze, Silver, Gold}
 
@@ -34,14 +35,14 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         uint256 joinDate; // timestamp for when member joined
         bool active; // membership status
     }
-    //===========events=====================
+    //===========Events=====================
     event MemberJoined(address indexed user, uint256 indexed tokenId, Tier tier);
     event TierUpgraded(address indexed user, Tier newTier);
     event MembershipRevoked(address indexed user);
-    event BaseURIUpdated(string newURI);
+    event BaseURIUpdated(string newBaseURI);
     event ContractInitialized(address indexed admin);
 
-    //=================errors========
+    //=================Errors========
     error NotMember();
     error NotAdmin();
     error AlreadyMinted();
@@ -69,7 +70,7 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     }
     //===========Constructor===========
 
-    constructor (string memory _baseURI, address _admin)ERC721("CommunityPass", "CPASS")Ownable(_admin){
+    constructor (string memory _baseURI, address _admin) ERC721("CommunityPass", "CPASS") Ownable(_admin){
         if (_admin == address (0)) revert ZeroAddress();
         baseURI = _baseURI;
         admin = _admin;
@@ -85,7 +86,8 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         if (to == address(0)) revert ZeroAddress();
 
          uint256 id = nextTokenId++;
-         _safeMint(to, id); // _safeMint() checks whether the receipient is capable of receiving ERC721 tokens. 
+
+         _safeMint(to, id); //@notice  _safeMint() checks whether the receipient is capable of receiving ERC721 tokens. 
                             //This avoids lose of tokens permanently.
 
         members[id]= Member({
@@ -103,12 +105,11 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     //@notice upgrade a member's tier(Bronze > silver > gold)
     //@dev only callable by admin
 
-    function upgradeTier(uint256 tokenId, Tier newTier) external 
-    onlyAdmin 
-    validTier(newTier){
+    function upgradeTier(uint256 tokenId, Tier newTier) external onlyAdmin validTier(newTier){
 
-        if(_ownerOf(tokenId)==address(0))revert TokenDoesNotExist();
+        if(_ownerOf(tokenId)==address(0) || tokenId== 0)revert TokenDoesNotExist();
         if (!members[tokenId].active) revert NotMember();
+   
 
       Tier currentTier = members[tokenId].tier;
         if (uint256(currentTier) > uint256(newTier)) revert InvalidTier();
@@ -123,16 +124,18 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     //@dev admin only
 
     function revokeMembership(uint256 tokenId) external onlyAdmin{
+
       if(_ownerOf(tokenId)==address(0))revert TokenDoesNotExist();
         members[tokenId].active = false;
 
-         address user = ownerOf(tokenId);
+         address user = _ownerOf(tokenId);
 
         emit MembershipRevoked( user);
        
 
     }    //==========helpers=========
     //@notice return true if member is active 
+
     function _isMember(address _user) external view returns (bool){
       if(balanceOf(_user)==0)revert NotMember();
     
@@ -140,23 +143,32 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         
          return members[tokenId].active;
     }
-    function updateBaseURI(string memory newURI)external onlyAdmin{
-       baseURI = newURI;
 
-       emit BaseURIUpdated(newURI);
+    function updateBaseURI(string memory newBaseURI)external onlyAdmin{
+       baseURI = newBaseURI;
+
+       emit BaseURIUpdated(newBaseURI);
     }
+
     function tokenURI(uint256 tokenId)public view override returns(string memory){
-        if(_ownerOf(tokenId)==address(0))revert TokenDoesNotExist();
+        
+       if(_ownerOf(tokenId)==address(0))revert TokenDoesNotExist();
+
         string memory tierStr = _tierToString(members[tokenId].tier);
+
        return  string(abi.encodePacked(baseURI, "/", tierStr, ".json"));
+
     }
+
     function setAdmin(address newAdmin) external onlyAdmin{
         if(newAdmin == address(0)) revert NotAdmin();
         admin = newAdmin;
     }
+
    function getAdmin() external view returns (address){
     return admin;
    }
+
     function _tierToString(Tier tier)internal pure returns(string memory){
         if(tier==Tier.Bronze) return ("Bronze");
         if(tier==Tier.Silver)return ("Silver");
@@ -164,16 +176,19 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         return "";
     }
     //===================Overrides==================
+
     function _update(address to, uint256 tokenId, address auth)internal 
     override(ERC721, ERC721Enumerable) returns(address){
        
         return super._update(to, tokenId, auth);
     }
+
     function supportsInterface(bytes4 interfaceId)public view 
     override(ERC721, ERC721Enumerable) returns (bool){
        
         return super.supportsInterface(interfaceId);
     }
+
     function _increaseBalance(address account, uint128 amount) internal override (ERC721, ERC721Enumerable){
         super._increaseBalance(account, amount);
     }
@@ -182,4 +197,5 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
 
 
 }
+
 
