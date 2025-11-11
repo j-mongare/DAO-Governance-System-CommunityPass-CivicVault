@@ -174,11 +174,13 @@ contract CivicVault is ReentrancyGuard{
       bool operator = membershipToken.isApprovedForAll(msg.sender, address(this));
       if(approved != address(this)&& !operator )revert NotApproved();
 
-      membershipToken.transferFrom(msg.sender, address(this), tokenId); // reverts on failure
-
-      stakedTokenOf[msg.sender] = tokenId;
+     stakedTokenOf[msg.sender] = tokenId;
       stakeTimestamp[msg.sender]= block.timestamp;
       totalStaked+=1;
+
+      membershipToken.transferFrom(msg.sender, address(this), tokenId); // reverts on failure
+
+    
 
       emit Staked(msg.sender, tokenId, block.timestamp);
      }
@@ -472,4 +474,5 @@ contract CivicVault is ReentrancyGuard{
      
    
     }
+
 }
