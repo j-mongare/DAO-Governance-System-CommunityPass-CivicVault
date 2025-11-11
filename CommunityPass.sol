@@ -140,7 +140,7 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
         
          return members[tokenId].active;
     }
-    function updateBaseURI(string calldata newURI)external onlyAdmin{
+    function updateBaseURI(string memory newURI)external onlyAdmin{
        baseURI = newURI;
 
        emit BaseURIUpdated(newURI);
@@ -179,5 +179,6 @@ contract CommunityPass is ERC721,ERC721Enumerable,Ownable{
     }
    
    
+
 
 }
