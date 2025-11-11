@@ -261,7 +261,7 @@ contract CivicVault is ReentrancyGuard{
      *  - transfer rewardToken to caller
      */
      function claimRewards()external nonReentrant{
-        if(stakedTokenOf[msg.sender]== 0)revert NoStake();
+        if(stakedTokenOf[msg.sender]== 0)revert FuckOff();
         if (address(rewardToken)== address(0) || rewardRatePerSecond == 0)revert TransferFailed();
 
         uint256 start = stakeTimestamp[msg.sender];
@@ -508,5 +508,6 @@ contract CivicVault is ReentrancyGuard{
     }
 
 }
+
 
 
