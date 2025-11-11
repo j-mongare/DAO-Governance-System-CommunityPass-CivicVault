@@ -200,12 +200,16 @@ contract CivicVault is ReentrancyGuard{
         if (stakedTokenOf[msg.sender] != tokenId)revert NoStake();
 
         if(activeProposals > 0){
+
          // check only active proposals indexes; to keep gas low we track activeProposals count,
             // but we also need to know which proposals are active. To avoid full scan, we disallow unstake
-            // when activeProposals > 0 if you have voted in any currently open proposal.
-            // We'll scan proposals in a limited window: from (nextProposalId - activeProposals) to nextProposalId-1
+            // when (activeProposals > 0) ...... if you have voted in any currently open proposal.
+            // We scan proposals in a limited window: that is, from (nextProposalId - activeProposals) to nextProposalId-1
 
             uint256 end = nextProposalId;
+
+            //@notice  tenary operation for simple if/else => condition? valueIfTrue: valueIfFalse;
+
             uint256 start = end > activeProposals? end - activeProposals: 1;
 
             for(uint256 pid = start; pid < end; ++pid){
@@ -218,24 +222,31 @@ contract CivicVault is ReentrancyGuard{
         }
     
       // calculate reward amount
+
          uint256 rewardAmount = 0;
+
+      //@notice address(0) disables rewards
+
         if (address(rewardToken) != address(0) && rewardRatePerSecond > 0){
          uint256 start = stakeTimestamp[msg.sender];
          if(start != 0){
             uint256 stakedFor = block.timestamp - start;
 
             uint256 rewardAmount = rewardRatePerSecond * stakedFor;
+
             bool sent = rewardToken.transfer(msg.sender, rewardAmount);
             if(!sent) revert TransferFailed();
+
             emit RewardClaimed(msg.sender, rewardAmount);
          }
 
         }
 
          // transfer NFT  to msg.sender
+
          stakedTokenOf[msg.sender]= 0 ;
          stakeTimestamp[msg.sender]= 0 ;
-         totalStaked --;
+         totalStaked -= 1;
 
          membershipToken.transferFrom(address(this), msg.sender, tokenId);
 
@@ -255,17 +266,21 @@ contract CivicVault is ReentrancyGuard{
 
         uint256 start = stakeTimestamp[msg.sender];
         if(start == 0) revert TransferFailed();
+
         uint256 stakedFor = block.timestamp - start;
            uint256 rewardAmount = stakedFor * rewardRatePerSecond;
 
            // reset stakeTimestamp to now!
-          stakeTimestamp[msg.sender] = block.timestamp;
+           stakeTimestamp[msg.sender] = block.timestamp;
+
            bool sent = rewardToken.transfer(msg.sender, rewardAmount);
            if(!sent)revert Transferfailed();
 
             emit RewardClaimed(msg.sender, rewardAmount);
          } 
+
         /////===========================Governance Logic=========================
+
         /**
      * @notice Create a proposal. Only members (staked OR holders depending on design).
      * @param description Human-readable description of the proposal.
@@ -278,6 +293,7 @@ contract CivicVault is ReentrancyGuard{
      */
 
      function createProposal(uint256 proposalId, string calldata description) external onlyMember returns (uint256){
+
         if(bytes(description).length==0)revert DescriptionEmpty();
         uint256 period = votingPeriodSeconds== 0 ? 4 days: votingPeriodSeconds; // sets default voting period to 4 days
 
@@ -322,7 +338,9 @@ contract CivicVault is ReentrancyGuard{
         if(support) {
             votes[proposalId][msg.sender]= VoteChoice.Yes;
             proposals[proposalId].yesWeight += weight;
+
              emit Voted(msg.sender, proposalId, VoteChoice.Yes, weight);
+
         }else {
             votes[proposalId][msg.sender]= VoteChoice.No;
             proposals[proposalId].noWeight += weight;
@@ -358,7 +376,7 @@ contract CivicVault is ReentrancyGuard{
         if (totalStaked== 0) revert QuorumNotReached();
 
         bool passed = p.yesWeight > p.noWeight;
-         p.executed = true;
+        if(passed) p.executed = true;
 
          // mark proposal not active 
 
@@ -373,7 +391,7 @@ contract CivicVault is ReentrancyGuard{
      * @notice Read-only helper: get top-level proposal fields.
      * @dev Returns id, proposer, description, voteStart, voteEnd, yesWeight, noWeight, executed.
      */
-     function getProposal(uint256 proposalId)external view proposalExists(proposalid) returns(
+     function getProposal(uint256 proposalId)external view proposalExists(proposalId) returns(
      uint256 id,
      address proposer, 
      string memory description,
@@ -396,10 +414,12 @@ contract CivicVault is ReentrancyGuard{
         p.executed);
 
       }
+
       //==================Admin Functions=====================================
+
       /**
      * @notice Update quorum percentage (onlyAdmin).
-     * @dev quorumPercentage must be 0..100
+     * @dev quorumPercentage must be BETWEEN 0-100
      */
 
      function setQuorumPercentage (uint8 _quorumPercentage) external onlyAdmin{
@@ -421,14 +441,19 @@ contract CivicVault is ReentrancyGuard{
 
         emit RewardConfigUpdated(rewardToken,  rewardRatePerSecond);
      }
+
       /**
      * @notice Set default voting period seconds.
      */
+
      function setVotingPeriod(uint256 _votingPeriodSeconds)external onlyAdmin{
         if (_votingPeriodSeconds == 0) revert InvalidVotingPeriod();
         votingPeriodSeconds = _votingPeriodSeconds;
+
         emit GovernanceParamsUpdated(quorumPercentage, votingPeriodSeconds);
+
      }
+
      function setAdmin(address newAdmin) external onlyAdmin{
         if (newAdmin == address(0)) revert ZeroAddress();
         address oldAdmin = admin;
@@ -443,8 +468,12 @@ contract CivicVault is ReentrancyGuard{
      * @dev Default: 1 if acc has staked token and 0 if account has no staked token; 
    
      */
+
      function _votingWeight(address account) internal view returns (uint256 weight){
         if (account == address(0))revert ZeroAddress();
+
+       // uint256 weight = stakedTokenOf[account] > 0 ? 1 : 0 ;
+
         if(stakedTokenOf[account] != 0) return 1;
         return 0;
           
@@ -453,19 +482,22 @@ contract CivicVault is ReentrancyGuard{
      /**
      * @notice Compute reward amount for an account based on stakeTimestamp and rewardRatePerSecond.
      */
+
      function _computeReward(address account) internal view returns(uint256){
-        
+        if (account == address(0))revert ZeroAddress();
+
             uint256 rewardAmount = 0 ;
             if (rewardAmount == 0 && RewardRatePerSecond == 0) return 0; 
             
             uint256 start = stakeTimestamp[account];
+
+            // compute the duration user/acc has staked 
+
             if (start != 0) uint256 stakedFor = block.timestamp - start;
 
             
-            return rewardAmount = stakedFor * rewardRatePerSecond;
-            
-            
-            
+            return (rewardAmount = stakedFor * rewardRatePerSecond);
+                      
 
   }
  function _proposalExists (uint256 proposalId) internal view returns (bool){
@@ -476,3 +508,4 @@ contract CivicVault is ReentrancyGuard{
     }
 
 }
+
